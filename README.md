@@ -44,16 +44,19 @@ jupyter lab pokemon_yard_simulation.ipynb
 
 ```bash
 manim -ql manim_card_flow.py CardFlowScene
+manim -ql manim_card_flow.py CircleTradeScene
 ```
 
 Локально можно открыть preview сразу после рендера:
 
 ```bash
 manim -pql manim_card_flow.py CardFlowScene
+manim -pql manim_card_flow.py CircleTradeScene
 ```
 
 Более высокое качество:
 
 ```bash
 manim -pqh manim_card_flow.py CardFlowScene
+manim -pqh manim_card_flow.py CircleTradeScene
 ```
