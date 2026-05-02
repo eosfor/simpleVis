@@ -6,6 +6,24 @@ from manim import *
 from pokemon_yard_model import make_initial_distribution, simulate_exchanges, gini, group_shares
 
 
+def group_labels(values: np.ndarray) -> np.ndarray:
+    n = len(values)
+    order = np.argsort(values)
+    labels = np.empty(n, dtype=object)
+    labels[order[: n // 5]] = "bottom_20"
+    labels[order[n // 5 : 4 * n // 5]] = "middle_60"
+    labels[order[4 * n // 5 :]] = "top_20"
+    return labels
+
+
+def group_color(label: str):
+    if label == "bottom_20":
+        return RED_C
+    if label == "top_20":
+        return GREEN_C
+    return BLUE_C
+
+
 class CardFlowScene(Scene):
     def construct(self):
         initial_counts = make_initial_distribution(seed=7)
@@ -219,5 +237,136 @@ class CircleTradeScene(Scene):
             if len(particles) > 0:
                 self.play(FadeOut(particles), run_time=0.08)
             previous = frame_idx
+
+        self.wait(1.2)
+
+
+class GroupMigrationScene(Scene):
+    def construct(self):
+        initial_counts = make_initial_distribution(seed=7)
+        result = simulate_exchanges(initial_counts, steps=180, seed=11)
+        history = result.history
+        n = len(initial_counts)
+        max_value = max(1.0, float(history.max()))
+
+        title = Text("Дети переходят между группами по рыночной ценности", font_size=30)
+        title.to_edge(UP)
+        self.play(FadeIn(title), run_time=0.8)
+
+        group_order = ["bottom_20", "middle_60", "top_20"]
+        group_names = {
+            "bottom_20": "нижние 20%",
+            "middle_60": "средние 60%",
+            "top_20": "верхние 20%",
+        }
+        group_centers = {
+            "bottom_20": np.array([-4.25, -0.18, 0.0]),
+            "middle_60": np.array([0.0, -0.18, 0.0]),
+            "top_20": np.array([4.25, -0.18, 0.0]),
+        }
+        group_ring_radii = {
+            "bottom_20": 1.08,
+            "middle_60": 1.58,
+            "top_20": 1.08,
+        }
+
+        def radius_for_value(value: float):
+            return 0.035 + 0.16 * value / max_value
+
+        def positions_for_snapshot(snapshot: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+            labels = group_labels(snapshot)
+            positions = np.zeros((n, 3), dtype=float)
+            for group in group_order:
+                members = np.flatnonzero(labels == group)
+                members = members[np.argsort(-snapshot[members])]
+                count = max(len(members), 1)
+                for slot, child in enumerate(members):
+                    angle = TAU * slot / count + PI / 2
+                    if group == "middle_60":
+                        ring = group_ring_radii[group] * (0.58 if slot % 3 == 0 else 1.0)
+                    else:
+                        ring = group_ring_radii[group] * (0.62 if slot % 2 == 0 else 1.0)
+                    positions[child] = group_centers[group] + ring * np.array([np.cos(angle), np.sin(angle), 0.0])
+            return labels, positions
+
+        def make_nodes(frame_idx: int):
+            snapshot = history[frame_idx]
+            labels, positions = positions_for_snapshot(snapshot)
+            nodes = VGroup()
+            for child in range(n):
+                node = Circle(
+                    radius=radius_for_value(float(snapshot[child])),
+                    stroke_width=1.0,
+                    stroke_color=WHITE,
+                )
+                node.set_fill(group_color(str(labels[child])), opacity=0.9)
+                node.move_to(positions[child])
+                nodes.add(node)
+            return nodes
+
+        def make_stats(frame_idx: int, movers_count: int):
+            snapshot = history[frame_idx]
+            text = (
+                f"шаг {frame_idx:03d}   "
+                f"Gini {gini(snapshot):.2f}   "
+                f"перешли группу: {movers_count:02d}   "
+                f"max value: {snapshot.max():.0f}"
+            )
+            label = Text(text, font_size=21)
+            label.next_to(title, DOWN, buff=0.25)
+            return label
+
+        zones = VGroup()
+        zone_labels = VGroup()
+        for group in group_order:
+            zone = Circle(
+                radius=group_ring_radii[group] + 0.28,
+                stroke_color=group_color(group),
+                stroke_width=2,
+                fill_opacity=0.04,
+            )
+            zone.move_to(group_centers[group])
+            zones.add(zone)
+            label = Text(group_names[group], font_size=21, color=group_color(group))
+            label.next_to(zone, DOWN, buff=0.25)
+            zone_labels.add(label)
+
+        nodes = make_nodes(0)
+        stats = make_stats(0, 0)
+        self.play(Create(zones), FadeIn(zone_labels), FadeIn(nodes), FadeIn(stats), run_time=1.0)
+
+        frame_indices = list(range(9, len(history), 9))
+        if frame_indices[-1] != len(history) - 1:
+            frame_indices.append(len(history) - 1)
+
+        previous = 0
+        previous_labels = group_labels(history[0])
+        for frame_idx in frame_indices:
+            current_labels = group_labels(history[frame_idx])
+            movers = np.flatnonzero(previous_labels != current_labels)
+            movers_count = len(movers)
+
+            new_nodes = make_nodes(frame_idx)
+            new_stats = make_stats(frame_idx, movers_count)
+
+            mover_labels = VGroup()
+            _, current_positions = positions_for_snapshot(history[frame_idx])
+            important_movers = sorted(
+                movers,
+                key=lambda child: abs(history[frame_idx, child] - history[previous, child]),
+                reverse=True,
+            )[:8]
+            for child in important_movers:
+                label = Text(f"child_{child:02d}", font_size=14, color=YELLOW)
+                label.move_to(current_positions[child] + np.array([0.0, 0.22, 0.0]))
+                mover_labels.add(label)
+
+            self.play(Transform(nodes, new_nodes), Transform(stats, new_stats), run_time=0.72, rate_func=smooth)
+            if len(mover_labels) > 0:
+                self.play(FadeIn(mover_labels), run_time=0.12)
+                self.play(FadeOut(mover_labels), run_time=0.42)
+
+            previous = frame_idx
+            previous_labels = current_labels
 
         self.wait(1.2)

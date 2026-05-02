@@ -35,7 +35,7 @@ https://mybinder.org/v2/gh/eosfor/simpleVis/HEAD?urlpath=lab/tree/pokemon_yard_s
 
 - `pokemon_yard_simulation.ipynb` - основной notebook с графиками стартового распределения, добровольными обменами, поименными переходами детей между группами и метриками.
 - `pokemon_yard_model.py` - воспроизводимая модель карточек, предпочтений и добровольных bundle-сделок.
-- `manim_card_flow.py` - Manim-сцены для анимации перетекания рыночной ценности.
+- `manim_card_flow.py` - Manim-сцены для анимации перетекания рыночной ценности и переходов детей между группами.
 - `requirements.txt` и `apt.txt` - конфигурация Binder.
 
 ## Локальный запуск
@@ -59,6 +59,7 @@ jupyter lab pokemon_yard_simulation.ipynb
 ```bash
 manim -ql manim_card_flow.py CardFlowScene
 manim -ql manim_card_flow.py CircleTradeScene
+manim -ql manim_card_flow.py GroupMigrationScene
 ```
 
 Локально можно открыть preview сразу после рендера:
@@ -66,6 +67,7 @@ manim -ql manim_card_flow.py CircleTradeScene
 ```bash
 manim -pql manim_card_flow.py CardFlowScene
 manim -pql manim_card_flow.py CircleTradeScene
+manim -pql manim_card_flow.py GroupMigrationScene
 ```
 
 Более высокое качество:
@@ -73,4 +75,5 @@ manim -pql manim_card_flow.py CircleTradeScene
 ```bash
 manim -pqh manim_card_flow.py CardFlowScene
 manim -pqh manim_card_flow.py CircleTradeScene
+manim -pqh manim_card_flow.py GroupMigrationScene
 ```
