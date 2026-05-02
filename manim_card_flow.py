@@ -8,14 +8,15 @@ from pokemon_yard_model import make_initial_distribution, simulate_exchanges, gi
 
 class CardFlowScene(Scene):
     def construct(self):
-        initial = make_initial_distribution(seed=7)
-        result = simulate_exchanges(initial, steps=180, seed=11)
+        initial_counts = make_initial_distribution(seed=7)
+        result = simulate_exchanges(initial_counts, steps=180, seed=11)
+        initial = result.initial
         history = result.history
         order = result.initial_order
         rank = {kid: pos for pos, kid in enumerate(order)}
-        max_cards = max(1, int(history.max()))
+        max_value = max(1.0, float(history.max()))
 
-        title = Text("100 детей: больше карточек -> больше возможностей обмена", font_size=30)
+        title = Text("Добровольные обмены: концентрация рыночной ценности", font_size=30)
         title.to_edge(UP)
         self.play(FadeIn(title), run_time=0.8)
 
@@ -40,7 +41,7 @@ class CardFlowScene(Scene):
         def make_bars(snapshot: np.ndarray):
             bars = VGroup()
             for pos, kid in enumerate(order):
-                h = max(0.035, chart_height * snapshot[kid] / max_cards)
+                h = max(0.035, chart_height * snapshot[kid] / max_value)
                 bar = Rectangle(width=bar_width, height=h, stroke_width=0)
                 bar.set_fill(color_for_child(kid), opacity=0.92)
                 bar.move_to([bar_x(pos), baseline_y + h / 2, 0])
@@ -89,7 +90,7 @@ class CardFlowScene(Scene):
             for _, initiator, counterparty, transfer in window_events:
                 start = np.array([bar_x(rank[counterparty]), baseline_y + 0.25, 0])
                 end = np.array([bar_x(rank[initiator]), baseline_y + 3.75, 0])
-                dot = Dot(start, radius=0.035 + 0.012 * min(transfer, 5), color=YELLOW)
+                dot = Dot(start, radius=0.035 + 0.004 * min(transfer, 12), color=YELLOW)
                 particles.add(dot)
                 arc = ArcBetweenPoints(start, end, angle=-0.55, color=YELLOW)
                 paths.append(arc)
@@ -113,15 +114,17 @@ class CardFlowScene(Scene):
 
 class CircleTradeScene(Scene):
     def construct(self):
-        initial = make_initial_distribution(seed=7)
-        result = simulate_exchanges(initial, steps=180, seed=11)
+        initial_counts = make_initial_distribution(seed=7)
+        result = simulate_exchanges(initial_counts, steps=180, seed=11)
+        initial = result.initial
         history = result.history
+        card_count_history = result.card_count_history
         order = result.initial_order
         rank = {kid: pos for pos, kid in enumerate(order)}
-        n = len(initial)
-        max_cards = max(1, int(history.max()))
+        n = len(initial_counts)
+        max_value = max(1.0, float(history.max()))
 
-        title = Text("Обмены во дворе: карточки перелетают между детьми", font_size=30)
+        title = Text("Bundle-сделки: меняется рыночная ценность коллекций", font_size=30)
         title.to_edge(UP)
         self.play(FadeIn(title), run_time=0.8)
 
@@ -140,16 +143,16 @@ class CircleTradeScene(Scene):
                 return GREEN_C
             return BLUE_C
 
-        def radius_for_cards(cards: int):
-            # Diameter is proportional to cards, with a tiny floor so zero-card
-            # children remain visible.
-            return 0.025 + 0.235 * cards / max_cards
+        def radius_for_value(value: float):
+            # Diameter is proportional to market value, with a tiny floor so
+            # low-value collections remain visible.
+            return 0.025 + 0.235 * value / max_value
 
         def make_nodes(snapshot: np.ndarray):
             nodes = VGroup()
             for pos, kid in enumerate(order):
                 node = Circle(
-                    radius=radius_for_cards(int(snapshot[kid])),
+                    radius=radius_for_value(float(snapshot[kid])),
                     stroke_width=1.0,
                     stroke_color=WHITE,
                 )
@@ -160,11 +163,12 @@ class CircleTradeScene(Scene):
 
         def make_stats(frame_idx: int):
             snapshot = history[frame_idx]
+            card_snapshot = card_count_history[frame_idx]
             text = (
                 f"шаг {frame_idx:03d}   "
-                f"Gini {gini(snapshot):.2f}   "
-                f"0 карточек: {np.sum(snapshot == 0):02d}   "
-                f"max: {int(snapshot.max())}"
+                f"Gini(value) {gini(snapshot):.2f}   "
+                f"0 карточек: {np.sum(card_snapshot == 0):02d}   "
+                f"max value: {snapshot.max():.0f}"
             )
             label = Text(text, font_size=22)
             label.next_to(title, DOWN, buff=0.25)
