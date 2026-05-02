@@ -40,7 +40,13 @@ jupyter lab pokemon_yard_simulation.ipynb
 
 ## Рендер Manim
 
-Быстрый preview:
+В Binder используйте команду без `-p`: флаг `-p` пытается открыть видео через системный viewer (`xdg-open`), которого в Binder обычно нет.
+
+```bash
+manim -ql manim_card_flow.py CardFlowScene
+```
+
+Локально можно открыть preview сразу после рендера:
 
 ```bash
 manim -pql manim_card_flow.py CardFlowScene
