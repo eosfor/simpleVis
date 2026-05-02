@@ -40,6 +40,8 @@ jupyter lab pokemon_yard_simulation.ipynb
 
 ## Рендер Manim
 
+В notebook Manim запускается тихо через `subprocess.run(...)`, поэтому служебный `INFO`-вывод не показывается, а готовое видео встраивается прямо под ячейкой.
+
 В Binder используйте команду без `-p`: флаг `-p` пытается открыть видео через системный viewer (`xdg-open`), которого в Binder обычно нет.
 
 ```bash
