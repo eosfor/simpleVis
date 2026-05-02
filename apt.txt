@@ -1,0 +1,6 @@
+ffmpeg
+libcairo2-dev
+libffi-dev
+libpango1.0-dev
+pkg-config
+shared-mime-info
