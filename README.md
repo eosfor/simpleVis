@@ -33,7 +33,7 @@ https://mybinder.org/v2/gh/eosfor/simpleVis/HEAD?urlpath=lab/tree/pokemon_yard_s
 
 ## Что внутри
 
-- `pokemon_yard_simulation.ipynb` - основной notebook с графиками стартового распределения, добровольными обменами и метриками.
+- `pokemon_yard_simulation.ipynb` - основной notebook с графиками стартового распределения, добровольными обменами, поименными переходами детей между группами и метриками.
 - `pokemon_yard_model.py` - воспроизводимая модель карточек, предпочтений и добровольных bundle-сделок.
 - `manim_card_flow.py` - Manim-сцены для анимации перетекания рыночной ценности.
 - `requirements.txt` и `apt.txt` - конфигурация Binder.
